@@ -1,46 +1,35 @@
 import {
-  Form,
+  Outlet,
   Scripts,
   ScrollRestoration,
   isRouteErrorResponse,
+  redirect,
 } from "react-router";
 import type { Route } from "./+types/root";
 
 import appStylesHref from "./app.css?url";
+import { createEmptyContact, getContacts } from "./data";
 
-export default function App() {
+export function HydrateFallback() {
+  console.log("in HydrateFallback");
   return (
-    <>
-      <div id="sidebar">
-        <h1>React Router Contacts</h1>
-        <div>
-          <Form id="search-form" role="search">
-            <input
-              aria-label="Search contacts"
-              id="q"
-              name="q"
-              placeholder="Search"
-              type="search"
-            />
-            <div aria-hidden hidden={true} id="search-spinner" />
-          </Form>
-          <Form method="post">
-            <button type="submit">New</button>
-          </Form>
-        </div>
-        <nav>
-          <ul>
-            <li>
-              <a href={`/contacts/1`}>Your Name</a>
-            </li>
-            <li>
-              <a href={`/contacts/2`}>Your Friend</a>
-            </li>
-          </ul>
-        </nav>
-      </div>
-    </>
+    <div id="loading-splash">
+      <div id="loading-splash-spinner" />
+      <p>Loading, please wait...</p>
+    </div>
   );
+}
+
+export async function action() {
+  const contact = await createEmptyContact();
+  console.log("new contact in root / action: ", contact);
+  return redirect(`/contacts/${contact.id}/edit`);
+  // return { contact };
+}
+
+export default function App({ loaderData }: Route.ComponentProps) {
+  console.log("in App, : ");
+  return <Outlet />;
 }
 
 // The Layout component is a special export for the root route.
@@ -68,8 +57,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let message = "Oops!";
   let details = "An unexpected error occurred.";
+  let data: string | undefined;
   let stack: string | undefined;
-  console.log("error boundary");
+  console.log("error boundary, with error: ", error);
 
   if (isRouteErrorResponse(error)) {
     message = error.status === 404 ? "404" : "Error";
@@ -77,6 +67,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       error.status === 404
         ? "The requested page could not be found."
         : error.statusText || details;
+    data = error.data;
   } else if (import.meta.env.DEV && error && error instanceof Error) {
     details = error.message;
     stack = error.stack;
@@ -86,6 +77,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     <main id="error-page">
       <h1>{message}</h1>
       <p>{details}</p>
+      <p>{data}</p>
       {stack && (
         <pre>
           <code>{stack}</code>
