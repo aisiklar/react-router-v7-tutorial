@@ -1,12 +1,12 @@
-import { Form, useLoaderData } from "react-router";
+import { Form, useFetcher, useLoaderData } from "react-router";
 
-import { getContact, type ContactRecord } from "../data";
+import { getContact, updateContact, type ContactRecord } from "../data";
 import type { Route } from "../+types/root";
 
 export async function loader({ params }: Route.LoaderArgs) {
   console.log("in loader in Contact route...");
   const contactId = params.contactId;
-  const contact = await getContact(contactId);
+  const contact = await getContact(contactId as string);
   console.log("contact in loader: ", contact);
   if (!contact) {
     throw new Response(
@@ -15,6 +15,20 @@ export async function loader({ params }: Route.LoaderArgs) {
     );
   }
   return { contact };
+}
+
+export async function action({ params, request }: Route.ActionArgs) {
+  const formData = await request.formData();
+  console.log("#3 #4 action, contact, params: ", params);
+  console.log(
+    "#3 #4 action, contact, formData.get('favorite'): ",
+    formData.get("favorite")
+  );
+
+  // return null;
+  return updateContact(params.contactId as string, {
+    favorite: formData.get("favorite") === "true",
+  });
 }
 
 export default function Contact() {
@@ -28,7 +42,7 @@ export default function Contact() {
   // };
 
   const { contact } = useLoaderData();
-  console.log("contact in Contact: ", contact);
+  console.log("#3 contact in Contact: ", contact);
 
   return (
     <div id="contact">
@@ -88,11 +102,20 @@ export default function Contact() {
 }
 
 function Favorite({ contact }: { contact: Pick<ContactRecord, "favorite"> }) {
-  const favorite = contact.favorite;
+  const fetcher = useFetcher();
+
+  console.log("#4 fetcher: ", fetcher);
+
+  // const favorite = contact.favorite;
+  console.log("#4 fetcher.formData: ", fetcher.formData);
+  const favorite = fetcher.formData
+    ? fetcher.formData.get("favorite") === "true"
+    : contact.favorite;
+
   console.log("#1 contact in Favorite: ", contact);
 
   return (
-    <Form method="post">
+    <fetcher.Form method="post">
       <button
         aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
         name="favorite"
@@ -100,6 +123,6 @@ function Favorite({ contact }: { contact: Pick<ContactRecord, "favorite"> }) {
       >
         {favorite ? "★" : "☆"}
       </button>
-    </Form>
+    </fetcher.Form>
   );
 }

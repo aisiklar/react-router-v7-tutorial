@@ -22,6 +22,7 @@ export function HydrateFallback() {
 
 export async function action() {
   const contact = await createEmptyContact();
+  console.log("action in root...");
   console.log("new contact in root / action: ", contact);
   return redirect(`/contacts/${contact.id}/edit`);
   // return { contact };
